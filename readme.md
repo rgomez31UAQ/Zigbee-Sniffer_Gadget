@@ -134,7 +134,7 @@ The docker image can be constructed by issuing:
 ```docker image build -t erksponge/gcc_arm_commander_jflash .```
 
 and to compile the Sonoff sniffer:
-```docker run --rm -v ".:/home/app" --name build_container erksponge/gcc_arm_commander_jflash:latest make rebuild -f ./Sources/Target/Sonoff_USB_Dongle_Plus_E/makefile -j8"```
+```docker run --rm -v ".:/home/app" --name build_container erksponge/gcc_arm_commander_jflash:1.0.0 make rebuild -f ./Sources/Target/Sonoff_USB_Dongle_Plus_E/makefile -j8```
 
 
 ## What's next
