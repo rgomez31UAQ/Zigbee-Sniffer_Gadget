@@ -13,7 +13,7 @@
   - [What's next](#whats-next)
 
 
-This reposiroty contains firmware to allow capturing 802.15.4 packets with a USB SONOFF Zigbee 3.0 DONGLE Plus-E.
+This repository contains firmware to allow capturing 802.15.4 packets with a USB SONOFF Zigbee 3.0 DONGLE Plus-E.
 
 The USB dongle once reflashed will capture 802.15.4 traffic (Zigbee, 6lowpan/Thread) and send a frame in JSON format on USB Serial COM port to the host computer.
 
@@ -41,18 +41,18 @@ The file Sniffer_802.15.4_SONOFF_USB_Dongle_Plus_E.gbl must be used when perform
 Wireshark needs a converter to understand and display correctly the packets captured by the USB dongle.
 A wireshark converter is called an Extcap (short for EXTernal CAPture).
 
-To provide Wireshark with the needed Extcap, copy the file found in this repo under folder /Wireshrak/Extcap_802.15.4.exe to wireshark extcap folder.
-To locate the wireshark extcap folder, start wireshark, click on Help->About wireshark, select TAB named "folders", locate the
-Global Extcap path
-or
-Personal Extcap path
+Extcap files can be found in this repo under folder /Wireshark/:
 
-The file Extcap_802.15.4.exe needs to be copied in only one of the two folders.
+  - Windows: Extcap_802.15.4.exe; Compatible with Windows 10 and up.
+  - Python/Linux: zigbee_dongle_json_sniffer; Requires Python 3.9+ interpreter and pyserial.
+
+To provide Wireshark with the needed Extcap, copy the appropriate file to the wireshark extcap folder. To locate the wireshark extcap folder, start wireshark, click on Help->About wireshark, select TAB named "folders", locate the "Global Extcap path" or "Personal Extcap path".
+
+The extcap file  needs to be copied in only one of the two folders.
+
 Close wireshark once the copy is done, the Extcap will be loaded the next time wireshark is started.
 
 If you are interested in wireshark Extcap, you can refer to wireshark doc [8.2. Adding Capture Interfaces And Log Sources Using Extcap](https://www.wireshark.org/docs/wsdg_html_chunked/ChCaptureExtcap.html).
-The Wireshark Extcap plugin provided in this repo is compatible with computer running Windows 10 and up.
-
 
 ## How to record packets
 
@@ -73,7 +73,7 @@ Capture should start!
 ## Wireshark color scheme for ZigBee
 
 By default Wireshark presents ZigBee packets in black text on white background.
-The default color schem can make it difficult to quickly identify packet when analyzing ZigBee packets.
+The default color scheme can make it difficult to quickly identify packet when analyzing ZigBee packets.
 This repo provides a color scheme for Wireshark (file Wireshark\zigbee_color_scheme) well suited for ZigBee packet analysis.
 ZCL and APS packets are in green
 ZDP/ZDO packets are colored red
@@ -120,7 +120,7 @@ Example, C = channel:
 {"C":11}
 ```
 
-when sent to the usb dongle will select channel 11, can be used at anytime.
+when sent to the USB dongle will select channel 11, can be used at anytime.
 
 ## How to compile
 
@@ -152,4 +152,3 @@ Here are some wish list items that I have in mind:
 - Improve BSP when porting evolves
 - Provide a .gbl having the factory image for user desiring to return to the factory firmware
 - keep having fun...
-

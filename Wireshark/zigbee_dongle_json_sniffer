@@ -1,0 +1,122 @@
+#!/usr/bin/env python3
+import sys, json, time, serial, struct, argparse
+
+
+INTERFACE="zb_dongle_json_sniffer"
+VERSION="0.1"
+DLT=283  # DLT_IEEE802_15_4_TAP
+PCAP_MAGIC = 0xA1B2C3D4
+PCAP_VERSION_MAJOR = 2
+PCAP_VERSION_MINOR = 4
+THISZONE = 0        # GMT offset
+SIGFIGS = 0         # Timestamp accuracy
+SNAPLEN = 1500      # Max capture size
+
+
+def main(args=None):
+  args = parseargs(args or sys.argv[1:])
+  if args.extcap_interfaces:
+    print("extcap {version=%s}" % (VERSION,))
+    print("interface {value=%s}{display=Zigbee JSON Sniffer}" % (INTERFACE,))
+  elif args.extcap_dlts:
+    print("dlt {number=%s}{name=IEEE802_15_4_TAP}{display=IEEE 802.15.4 TAP}" % (DLT,))
+  elif args.extcap_config:
+    print("arg {number=0}{call=--device}{display=Serial device}{type=string}{default=/dev/ttyUSB0}{tooltip=Serial port of sniffer dongle}")
+    print("arg {number=1}{call=--baud}{display=Baud rate}{type=unsigned}{default=1000000}{tooltip=Baud rate (usually 1000000)}")
+    print("arg {number=2}{call=--channel}{display=Channel}{type=selector}{tooltip=Optional fixed channel filter}")
+    print("value {arg=2}{value=11}{display=11}")
+    print("value {arg=2}{value=12}{display=12}")
+  elif args.capture:
+    capture(args.fifo, device=args.device, baud=args.baud, channel_filter=args.channel)
+
+
+def parseargs(args: list[str]):
+  parser = argparse.ArgumentParser(
+    description='Zigbee JSON Sniffer'
+  )
+  group = parser.add_mutually_exclusive_group(required=True)
+  group.add_argument('--extcap-interfaces', default=False, action='store_true')
+  group.add_argument('--extcap-dlts', default=False, action='store_true')
+  group.add_argument('--extcap-config', default=False, action='store_true')
+  parser.add_argument('--extcap-interface', default='', type=str)
+  # parser.add_arguemnt('--extcap-version=4.4', default='', type=str)
+  group.add_argument('--capture', default=False, action='store_true')
+  capture_group = parser.add_argument_group()
+  capture_group.add_argument('--device', type=str, default="/dev/ttyUSB0")
+  capture_group.add_argument('--baud', type=str, default="1000000")
+  capture_group.add_argument('--channel', type=int, default=None)
+  capture_group.add_argument('--fifo', type=str)
+  args, _unknown = parser.parse_known_args(args)
+  if args.capture and not args.fifo:
+    parser.error("--fifo is required with --capture")
+  return args
+
+
+def capture(fifo, device, baud, channel_filter=None):
+  print(f'DEV={device} BAUD={baud} CHAN={channel_filter} FIFO={fifo}')
+
+  ser = serial.Serial(device, baud, timeout=1)
+
+  with open(fifo, 'wb', 0) as f:
+    header = struct.pack('<IHHIIII',
+      PCAP_MAGIC,
+      PCAP_VERSION_MAJOR,
+      PCAP_VERSION_MINOR,
+      THISZONE,
+      SIGFIGS,
+      SNAPLEN,
+      DLT)
+    f.write(header)
+
+    while True:
+      line = ser.readline().strip()
+      print(f'READ: {line}')
+      if not line:
+        continue
+      try:
+        data = json.loads(line)
+
+        # Optional channel filter
+        if channel_filter and data.get("C") != int(channel_filter):
+          continue
+
+        # Timestamp
+        ts = time.time()
+        ts_sec = int(ts)
+        ts_usec = int((ts - ts_sec) * 1_000_000)
+
+        packet = bytes.fromhex(data["S"])
+        channel_num = data.get("C", 11)
+        freq_mhz = (2405 + (channel_num - 11) * 5)*1e3
+        rssi_signed = data.get("R", -100)
+        lqi = data.get("Q", 255) & 0xff
+
+        # https://gitlab.com/exegin/ieee802-15-4-tap/-/blob/master/IEEE%20802.15.4%20TAP%20Link%20Type%20Specification.pdf
+        # FCS_TYPE = (0, 1, 'B')
+        # RSS = (1, 4, 'f')
+        # LQI = (10, 1, 'B')
+        # CHANNEL_FREQUENCY = (11, 4, 'f')
+        fcs_tlv = struct.pack('<HHBxxx', 0, 1, 0)
+        rssi_tlv = struct.pack('<HHf', 1, 4, rssi_signed)
+        lqi_tlv = struct.pack('<HHBxxx', 10, 1, lqi)
+        channel_tlv = struct.pack('<HHf', 11, 4, freq_mhz)
+
+        tap_body = channel_tlv + rssi_tlv + lqi_tlv + fcs_tlv
+        tap_header = struct.pack('<HH', 0, 4 + len(tap_body))  # version, total header length
+
+        incl_len = len(tap_header + tap_body + packet)
+        orig_len = incl_len
+
+        packet_record_hdr = struct.pack('<IIII',
+                    ts_sec, ts_usec, incl_len, orig_len)
+
+        print(f'READ: {incl_len} {orig_len} {ts_sec} {ts_usec} {channel_num} {freq_mhz} {rssi_signed} {lqi}')
+
+        f.write(packet_record_hdr + tap_header + tap_body + packet)
+
+      except Exception as e:
+        print(f'BAD LINE: {e}')
+
+
+if __name__ == '__main__':
+  main()
