@@ -87,21 +87,24 @@ def capture(fifo, device, baud, channel_filter=None):
 
         packet = bytes.fromhex(data["S"])
         channel_num = data.get("C", 11)
-        freq_mhz = (2405 + (channel_num - 11) * 5)*1e3
+        freq_khz = channel_to_freq_mhz(channel_num)*1e3
         rssi_signed = data.get("R", -100)
         lqi = data.get("Q", 255) & 0xff
 
         # https://gitlab.com/exegin/ieee802-15-4-tap/-/blob/master/IEEE%20802.15.4%20TAP%20Link%20Type%20Specification.pdf
+        # name = (code, length, type)
         # FCS_TYPE = (0, 1, 'B')
+        # CHANNEL_ASSIGNMENT =  = (3, 3, ('H', 'B'))
         # RSS = (1, 4, 'f')
         # LQI = (10, 1, 'B')
         # CHANNEL_FREQUENCY = (11, 4, 'f')
-        fcs_tlv = struct.pack('<HHBxxx', 0, 1, 0)
+        fcs_tlv = struct.pack('<HHBxxx', 0, 1, 1)
+        channel_tlv = struct.pack('<HHHBx', 3, 3, channel_num, 0)
         rssi_tlv = struct.pack('<HHf', 1, 4, rssi_signed)
         lqi_tlv = struct.pack('<HHBxxx', 10, 1, lqi)
-        channel_tlv = struct.pack('<HHf', 11, 4, freq_mhz)
+        channel_freq_tlv = struct.pack('<HHf', 11, 4, freq_khz)
 
-        tap_body = channel_tlv + rssi_tlv + lqi_tlv + fcs_tlv
+        tap_body = fcs_tlv + channel_tlv + rssi_tlv + lqi_tlv + channel_freq_tlv
         tap_header = struct.pack('<HH', 0, 4 + len(tap_body))  # version, total header length
 
         incl_len = len(tap_header + tap_body + packet)
@@ -110,13 +113,26 @@ def capture(fifo, device, baud, channel_filter=None):
         packet_record_hdr = struct.pack('<IIII',
                     ts_sec, ts_usec, incl_len, orig_len)
 
-        print(f'READ: {incl_len} {orig_len} {ts_sec} {ts_usec} {channel_num} {freq_mhz} {rssi_signed} {lqi}')
+        print(f'READ: incl_len={incl_len} orig_len={orig_len} ts_sec={ts_sec} '
+          f'ts_usec={ts_usec} channel_num={channel_num} freq_khz={freq_khz} '
+          f'rssi_signed={rssi_signed} lqi={lqi}')
 
         f.write(packet_record_hdr + tap_header + tap_body + packet)
 
       except Exception as e:
         print(f'BAD LINE: {e}')
 
+
+def channel_to_freq_mhz(channel):
+    ''' Convert IEEE 802.15.4 channel page 0 number to frequency in MHz. '''
+    if channel == 0:  # 868 MHz band
+      return 868.3
+    elif 1 <= channel <= 10: # 915 MHz band
+      return 906 + 2 * channel
+    elif 11 <= channel <= 26: # 2.4 GHz band
+      return 2405 + 5 * (channel - 11)
+    else:
+      return -1
 
 if __name__ == '__main__':
   main()
