@@ -48,9 +48,21 @@ Extcap files can be found in this repo under folder /Wireshark/:
 
 To provide Wireshark with the needed Extcap, copy the appropriate file to the wireshark extcap folder. To locate the wireshark extcap folder, start wireshark, click on Help->About wireshark, select TAB named "folders", locate the "Global Extcap path" or "Personal Extcap path".
 
-The extcap file  needs to be copied in only one of the two folders.
+The extcap file needs to be copied in only one of the two folders.
 
 Close wireshark once the copy is done, the Extcap will be loaded the next time wireshark is started.
+
+On Linux additional setup may be required:
+
+```
+# Ensure the script has execution permissions set:
+chmod +x zigbee_dongle_json_sniffer
+# Add yourself to the wireshark group (optional if you want to run Wireshark as non-root user):
+sudo usermod $USER -a -G wireshark
+# Make sure you have read permissions for the dongle. Usually this can be done my adding yourself to the dialout group:
+sudo usermod $USER -a -G dialout
+# Logout and back in for user group changes to take effect.
+```
 
 If you are interested in wireshark Extcap, you can refer to wireshark doc [8.2. Adding Capture Interfaces And Log Sources Using Extcap](https://www.wireshark.org/docs/wsdg_html_chunked/ChCaptureExtcap.html).
 
