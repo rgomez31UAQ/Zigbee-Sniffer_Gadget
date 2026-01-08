@@ -59,7 +59,7 @@ On Linux additional setup may be required:
 chmod +x zigbee_dongle_json_sniffer
 # Add yourself to the wireshark group (optional if you want to run Wireshark as non-root user):
 sudo usermod $USER -a -G wireshark
-# Make sure you have read permissions for the dongle. Usually this can be done my adding yourself to the dialout group:
+# Make sure you have read permissions for the dongle. Usually this can be done by adding yourself to the dialout group:
 sudo usermod $USER -a -G dialout
 # Logout and back in for user group changes to take effect.
 ```
@@ -159,8 +159,7 @@ and to compile the Sonoff sniffer:
 
 This is a hobby project, so I do it for learning and fun.
 Here are some wish list items that I have in mind:
-- Convert extcap to Python so it will be portable to Linux and Mac.
-- Port to other hardware from other vendor (ATSAMR21 and TI2652P)
+- Port to other hardware from other vendor (ATSAMR21 and TI2652P), coming soon SMLIGHT SLZB-07
 - Improve BSP when porting evolves
 - Provide a .gbl having the factory image for user desiring to return to the factory firmware
 - keep having fun...
